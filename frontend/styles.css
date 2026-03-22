@@ -1,0 +1,459 @@
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS
+   Change these variables to retheme the whole
+   app in one place.
+───────────────────────────────────────────── */
+:root {
+  --bg:        #fdf6ee;       /* warm cream page background   */
+  --white:     #fffaf4;       /* slightly warm white          */
+  --surface:   #fff8f0;       /* card / drawer surface        */
+  --border:    #e8ddd0;       /* soft warm border             */
+  --text:      #3b2f2f;       /* dark brown, not harsh black  */
+  --muted:     #a08c7e;       /* muted warm grey              */
+  --accent:    #b5705a;       /* terracotta / dusty rose      */
+  --accent-lt: #f0e0d8;       /* light tint of accent         */
+  --green:     #7a9e7e;       /* soft sage for "added" state  */
+  --green-lt:  #ddeedd;
+
+  --font-head: 'Lora', serif;
+  --font-body: 'Nunito', sans-serif;
+  --radius:    8px;
+}
+
+/* ─────────────────────────────────────────────
+   RESET & BASE
+───────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* ─────────────────────────────────────────────
+   HEADER
+───────────────────────────────────────────── */
+header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  font-family: var(--font-head);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.logo span {
+  color: var(--accent);
+}
+
+.cart-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 7px 16px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.cart-btn:hover {
+  opacity: 0.88;
+}
+
+.badge {
+  background: rgba(255,255,255,0.3);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────
+   CATEGORY FILTER PILLS
+───────────────────────────────────────────── */
+.filters {
+  max-width: 900px;
+  margin: 1.5rem auto 0;
+  padding: 0 2rem;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 20px;
+  padding: 5px 16px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pill.active {
+  background: var(--accent-lt);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────
+   MENU WRAPPER & META
+───────────────────────────────────────────── */
+.menu-wrap {
+  max-width: 900px;
+  margin: 1.5rem auto 4rem;
+  padding: 0 2rem;
+}
+
+.menu-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+/* ─────────────────────────────────────────────
+   MENU LIST
+   A vertical list of rows separated by a 1px
+   gap — the gap shows the border colour, giving
+   the impression of dividers without extra HTML.
+───────────────────────────────────────────── */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--border);      /* "gap" colour  */
+  box-shadow: 0 2px 12px rgba(59, 47, 47, 0.05);
+}
+
+.menu-row {
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  transition: background 0.12s;
+}
+
+.menu-row:hover {
+  background: var(--white);
+}
+
+/* Emoji column */
+.row-emoji {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  width: 38px;
+  text-align: center;
+}
+
+/* Name + description */
+.row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-name {
+  font-family: var(--font-head);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.row-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Price + button */
+.row-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.row-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.add-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Green "added" state */
+.add-btn.added {
+  color: var(--green);
+  border-color: var(--green);
+  background: var(--green-lt);
+}
+
+/* ─────────────────────────────────────────────
+   OVERLAY (dims the page when cart is open)
+───────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(59, 47, 47, 0.2);
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ─────────────────────────────────────────────
+   CART DRAWER
+───────────────────────────────────────────── */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: -380px;
+  bottom: 0;
+  width: 360px;
+  background: var(--white);
+  border-left: 1px solid var(--border);
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.28s ease;
+  box-shadow: -4px 0 24px rgba(59, 47, 47, 0.08);
+}
+
+.drawer.open {
+  right: 0;
+}
+
+.drawer-head {
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-head h3 {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.x-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: color 0.15s;
+}
+
+.x-btn:hover {
+  color: var(--text);
+}
+
+.drawer-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty-msg {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+  padding: 2rem 0;
+  line-height: 1.7;
+}
+
+.c-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+
+.c-item-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.c-item-price {
+  color: var(--muted);
+  margin-top: 2px;
+  font-size: 0.8rem;
+}
+
+.rm-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+  transition: color 0.15s;
+}
+
+.rm-btn:hover {
+  color: var(--accent);
+}
+
+/* Cart footer: total + place order */
+.drawer-foot {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.total-row span:last-child {
+  font-weight: 600;
+  font-family: var(--font-head);
+}
+
+.order-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.order-btn:hover {
+  opacity: 0.88;
+}
+
+.order-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────
+   TOAST NOTIFICATION
+───────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(70px);
+  background: var(--text);
+  color: var(--white);
+  padding: 10px 22px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 100;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(59,47,47,0.18);
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — small screens
+───────────────────────────────────────────── */
+@media (max-width: 540px) {
+  header,
+  .filters,
+  .menu-wrap {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .drawer {
+    width: 100%;
+    right: -100%;
+  }
+
+  /* Hide description on small screens to save space */
+  .row-desc {
+    display: none;
+  }
+}

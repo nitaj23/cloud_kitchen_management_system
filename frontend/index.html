@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CloudKitchen</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+  <!-- Our stylesheet -->
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+  <!-- ════ HEADER ════ -->
+  <header>
+    <div class="logo">Cloud<span>Kitchen</span></div>
+    <button class="cart-btn" onclick="toggleCart()">
+      Cart <span class="badge" id="cart-count">0</span>
+    </button>
+  </header>
+
+  <!-- ════ CATEGORY FILTERS ════ -->
+  <div class="filters">
+    <button class="pill active" onclick="filter('all', this)">All</button>
+    <button class="pill" onclick="filter('starters', this)">Starters</button>
+    <button class="pill" onclick="filter('mains', this)">Mains</button>
+    <button class="pill" onclick="filter('rice-noodles', this)">Rice &amp; Noodles</button>
+    <button class="pill" onclick="filter('desserts', this)">Desserts</button>
+    <button class="pill" onclick="filter('drinks', this)">Drinks</button>
+  </div>
+
+  <!-- ════ MENU LIST ════ -->
+  <div class="menu-wrap">
+    <p class="menu-meta" id="meta"></p>
+    <div class="menu-list" id="menu-list">
+      <!-- Rows injected by script.js → renderMenu() -->
+    </div>
+  </div>
+
+  <!-- ════ CART DRAWER ════ -->
+  <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <h3>Your order</h3>
+      <button class="x-btn" onclick="toggleCart()">✕</button>
+    </div>
+    <div class="drawer-items" id="drawer-items"></div>
+    <div class="drawer-foot">
+      <div class="total-row">
+        <span>Total</span>
+        <span id="total">₹0</span>
+      </div>
+      <button class="order-btn" id="order-btn" onclick="placeOrder()" disabled>
+        Place order
+      </button>
+    </div>
+  </div>
+
+  <!-- ════ TOAST NOTIFICATION ════ -->
+  <div class="toast" id="toast">
+    Order placed — we'll have it ready shortly.
+  </div>
+
+  <!-- Our script — loaded at the end so HTML is ready when JS runs -->
+  <script src="script.js"></script>
+</body>
+</html>
