@@ -221,23 +221,20 @@ header {
 }
 
 .add-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
   border-radius: 20px;
   padding: 5px 14px;
   font-family: var(--font-body);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: opacity 0.15s;
   white-space: nowrap;
 }
 
-.add-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.add-btn:hover { opacity: 0.88; }
 
 /* Green "added" state */
 .add-btn.added {
