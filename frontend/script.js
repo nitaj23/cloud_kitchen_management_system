@@ -12,14 +12,14 @@
 //  structure — so the rest of this file stays exactly the same.
 // ─────────────────────────────────────────────────────────────
 const MENU = [
-  { id: 1, name: "Paneer Tikka",     desc: "Chargrilled cottage cheese, mint chutney",  price: 180, cat: "starters",     emoji: "🧆" },
-  { id: 2, name: "Veg Spring Rolls", desc: "Crispy rolls, seasoned vegetables",          price: 140, cat: "starters",     emoji: "🥢" },
-  { id: 3, name: "Butter Chicken",   desc: "Tomato-butter gravy, tender chicken",        price: 280, cat: "mains",        emoji: "🍛" },
-  { id: 4, name: "Dal Makhani",      desc: "Slow-cooked black lentils, cream",           price: 200, cat: "mains",        emoji: "🫕" },
-  { id: 5, name: "Chicken Biryani",  desc: "Basmati rice, saffron, spiced chicken",      price: 320, cat: "rice-noodles", emoji: "🍚" },
-  { id: 6, name: "Hakka Noodles",    desc: "Wok-tossed noodles, fresh vegetables",       price: 160, cat: "rice-noodles", emoji: "🍜" },
-  { id: 7, name: "Gulab Jamun",      desc: "Milk dumplings in rose-cardamom syrup",      price: 90,  cat: "desserts",     emoji: "🍮" },
-  { id: 8, name: "Mango Lassi",      desc: "Chilled yoghurt, Alphonso mangoes",          price: 80,  cat: "drinks",       emoji: "🥭" },
+  { id: 1, name: "Paneer Tikka",     desc: "Chargrilled cottage cheese, mint chutney",   price: 180, cat: "starters",     img: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=120&q=80" },
+  { id: 2, name: "Veg Spring Rolls", desc: "Crispy rolls, seasoned vegetables",          price: 140, cat: "starters",     img: "https://images.unsplash.com/photo-1606755456206-b25206cde27e?w=120&q=80" },
+  { id: 3, name: "Butter Chicken",   desc: "Tomato-butter gravy, tender chicken",        price: 280, cat: "mains",        img: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=120&q=80" },
+  { id: 4, name: "Dal Makhani",      desc: "Slow-cooked black lentils, cream",           price: 200, cat: "mains",        img: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=120&q=80" },
+  { id: 5, name: "Chicken Biryani",  desc: "Basmati rice, saffron, spiced chicken",      price: 320, cat: "rice-noodles", img: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=120&q=80" },
+  { id: 6, name: "Hakka Noodles",    desc: "Wok-tossed noodles, fresh vegetables",       price: 160, cat: "rice-noodles", img: "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=120&q=80" },
+  { id: 7, name: "Gulab Jamun",      desc: "Milk dumplings in rose-cardamom syrup",      price: 90,  cat: "desserts",     img: "https://www.vegrecipesofindia.com/wp-content/uploads/2021/10/gulab-jamun-recipe-500x500.jpg" },
+  { id: 8, name: "Mango Lassi",      desc: "Chilled yoghurt, Alphonso mangoes",          price: 80,  cat: "drinks",       img: "https://images.unsplash.com/photo-1546173159-315724a31696?w=120&q=80" },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -52,25 +52,31 @@ function renderMenu(cat) {
 
   document.getElementById("meta").textContent = `${items.length} item${items.length !== 1 ? "s" : ""}`;
 
-  document.getElementById("menu-list").innerHTML = items.map(m => `
-    <div class="menu-row">
-      <div class="row-emoji">${m.emoji}</div>
-      <div class="row-info">
-        <div class="row-name">${m.name}</div>
-        <div class="row-desc">${m.desc}</div>
+  document.getElementById("menu-list").innerHTML = items.map(m => {
+    const qty = cart[m.id] ? cart[m.id].qty : 0;
+
+    const control = qty === 0
+      ? `<button class="add-btn" id="btn-${m.id}" onclick="addToCart(${m.id})">+ Add</button>`
+      : `<div class="qty-stepper" id="btn-${m.id}">
+           <button class="qty-btn" onclick="decreaseQty(${m.id})">−</button>
+           <span class="qty-num">${qty}</span>
+           <button class="qty-btn" onclick="increaseQty(${m.id})">+</button>
+         </div>`;
+
+    return `
+      <div class="menu-row">
+        <img class="row-img" src="${m.img}" alt="${m.name}"/>
+        <div class="row-info">
+          <div class="row-name">${m.name}</div>
+          <div class="row-desc">${m.desc}</div>
+        </div>
+        <div class="row-right">
+          <span class="row-price">₹${m.price}</span>
+          ${control}
+        </div>
       </div>
-      <div class="row-right">
-        <span class="row-price">₹${m.price}</span>
-        <button
-          class="add-btn ${cart[m.id] ? "added" : ""}"
-          id="btn-${m.id}"
-          onclick="addToCart(${m.id})"
-        >
-          ${cart[m.id] ? "✓ Added" : "+ Add"}
-        </button>
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 
@@ -97,20 +103,29 @@ function filter(cat, el) {
 function addToCart(id) {
   const item = MENU.find(m => m.id === id);
   if (!item) return;
+  cart[id] = { item, qty: 1 };
+  renderMenu(activeCat);
+  updateCartUI();
+}
 
-  if (cart[id]) {
-    cart[id].qty += 1;          // already in cart — bump quantity
+function increaseQty(id) {
+  if (!cart[id]) return;
+  cart[id].qty += 1;
+  const s = document.getElementById(`btn-${id}`);
+  if (s) s.querySelector(".qty-num").textContent = cart[id].qty;
+  updateCartUI();
+}
+
+function decreaseQty(id) {
+  if (!cart[id]) return;
+  cart[id].qty -= 1;
+  if (cart[id].qty === 0) {
+    delete cart[id];
+    renderMenu(activeCat);
   } else {
-    cart[id] = { item, qty: 1 }; // new item — add with qty 1
+    const s = document.getElementById(`btn-${id}`);
+    if (s) s.querySelector(".qty-num").textContent = cart[id].qty;
   }
-
-  // Update the button on the menu row
-  const btn = document.getElementById(`btn-${id}`);
-  if (btn) {
-    btn.textContent = "✓ Added";
-    btn.classList.add("added");
-  }
-
   updateCartUI();
 }
 
