@@ -1,7 +1,7 @@
 -- =============================================================
---  seed.sql
+--  seed.sql  (UPDATED)
 --  Run AFTER schema.sql.
---  Populates the database with realistic test data.
+--  5 demo users (no real auth — demo login screen picks by user_id).
 -- =============================================================
 
 
@@ -13,21 +13,22 @@ INSERT INTO categories (name) VALUES ('Desserts');
 INSERT INTO categories (name) VALUES ('Drinks');
 
 
--- ── USERS ────────────────────────────────────────────────────
--- Passwords here are bcrypt hashes of 'password123'
--- In real life, your Node.js backend hashes passwords before
--- inserting — never store plain text passwords.
+-- ── USERS (5 demo users) ─────────────────────────────────────
+-- No real passwords needed — login is demo-only (select by user_id)
 INSERT INTO users (name, email, password_hash, phone, role)
-VALUES ('Admin User',  'admin@ckms.com',   '$2b$10$examplehash1', '9900000001', 'admin');
+VALUES ('Admin User',  'admin@ckms.com',   'demo', '9900000001', 'admin');
 
 INSERT INTO users (name, email, password_hash, phone, role)
-VALUES ('Jatin R',     'jatin@gmail.com',  '$2b$10$examplehash2', '9900000002', 'customer');
+VALUES ('Jatin R',     'jatin@gmail.com',  'demo', '9900000002', 'customer');
 
 INSERT INTO users (name, email, password_hash, phone, role)
-VALUES ('Priya S',     'priya@gmail.com',  '$2b$10$examplehash3', '9900000003', 'customer');
+VALUES ('Priya S',     'priya@gmail.com',  'demo', '9900000003', 'customer');
 
 INSERT INTO users (name, email, password_hash, phone, role)
-VALUES ('Arjun M',     'arjun@gmail.com',  '$2b$10$examplehash4', '9900000004', 'customer');
+VALUES ('Arjun M',     'arjun@gmail.com',  'demo', '9900000004', 'customer');
+
+INSERT INTO users (name, email, password_hash, phone, role)
+VALUES ('Sneha K',     'sneha@gmail.com',  'demo', '9900000005', 'customer');
 
 
 -- ── MENU ITEMS ───────────────────────────────────────────────
@@ -92,8 +93,6 @@ VALUES ('Cream',          2000,  'ml',     300);
 
 
 -- ── MENU_ITEM_INVENTORY ──────────────────────────────────────
--- How much of each ingredient each dish uses (per serving)
--- item_id 1 = Paneer Tikka, inventory_id 1 = Paneer, etc.
 INSERT INTO menu_item_inventory (item_id, inventory_id, quantity_used)
 VALUES (1, 1, 200);   -- Paneer Tikka uses 200g Paneer
 
@@ -137,18 +136,18 @@ VALUES (4, 'pending', 400);
 
 
 -- ── SAMPLE ORDER ITEMS ───────────────────────────────────────
--- Order 1 (user Jatin): Paneer Tikka + Chicken Biryani
+-- Order 1 (Jatin): Paneer Tikka + Chicken Biryani
 INSERT INTO order_items (order_id, item_id, quantity, unit_price)
 VALUES (1, 1, 1, 180);
 
 INSERT INTO order_items (order_id, item_id, quantity, unit_price)
 VALUES (1, 5, 1, 320);
 
--- Order 2 (user Priya): Butter Chicken
+-- Order 2 (Priya): Butter Chicken
 INSERT INTO order_items (order_id, item_id, quantity, unit_price)
 VALUES (2, 3, 1, 280);
 
--- Order 3 (user Arjun): Dal Makhani + Mango Lassi
+-- Order 3 (Arjun): Dal Makhani + Mango Lassi
 INSERT INTO order_items (order_id, item_id, quantity, unit_price)
 VALUES (3, 4, 1, 200);
 

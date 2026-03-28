@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CloudKitchen</title>
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet"/>
-
-  <!-- Our stylesheet -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
@@ -16,31 +12,39 @@
   <!-- ════ HEADER ════ -->
   <header>
     <div class="logo">Cloud<span>Kitchen</span></div>
-    <button class="cart-btn" onclick="toggleCart()">
-      Cart <span class="badge" id="cart-count">0</span>
-    </button>
+    <div class="header-right">
+      <div class="user-chip" id="user-chip">
+        <span class="user-avatar" id="user-avatar"></span>
+        <span id="user-name"></span>
+      </div>
+      <button class="orders-btn" onclick="toggleOrders()">My Orders</button>
+      <button class="cart-btn" onclick="toggleCart()">
+        Cart <span class="badge" id="cart-count">0</span>
+      </button>
+      <button class="logout-btn" onclick="logout()" title="Switch user">↩</button>
+    </div>
   </header>
 
   <!-- ════ CATEGORY FILTERS ════ -->
   <div class="filters">
     <button class="pill active" onclick="filter('all', this)">All</button>
-    <button class="pill" onclick="filter('starters', this)">Starters</button>
-    <button class="pill" onclick="filter('mains', this)">Mains</button>
-    <button class="pill" onclick="filter('rice-noodles', this)">Rice &amp; Noodles</button>
-    <button class="pill" onclick="filter('desserts', this)">Desserts</button>
-    <button class="pill" onclick="filter('drinks', this)">Drinks</button>
+    <button class="pill" onclick="filter('Starters', this)">Starters</button>
+    <button class="pill" onclick="filter('Mains', this)">Mains</button>
+    <button class="pill" onclick="filter('Rice &amp; Noodles', this)">Rice &amp; Noodles</button>
+    <button class="pill" onclick="filter('Desserts', this)">Desserts</button>
+    <button class="pill" onclick="filter('Drinks', this)">Drinks</button>
   </div>
 
-  <!-- ════ MENU LIST ════ -->
+  <!-- ════ MENU ════ -->
   <div class="menu-wrap">
     <p class="menu-meta" id="meta"></p>
     <div class="menu-list" id="menu-list">
-      <!-- Rows injected by script.js → renderMenu() -->
+      <div class="loading">Loading menu…</div>
     </div>
   </div>
 
   <!-- ════ CART DRAWER ════ -->
-  <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+  <div class="overlay" id="overlay" onclick="closeAll()"></div>
 
   <div class="drawer" id="drawer">
     <div class="drawer-head">
@@ -59,12 +63,20 @@
     </div>
   </div>
 
-  <!-- ════ TOAST NOTIFICATION ════ -->
-  <div class="toast" id="toast">
-    Order placed — we'll have it ready shortly.
+  <!-- ════ MY ORDERS DRAWER ════ -->
+  <div class="drawer drawer-orders" id="orders-drawer">
+    <div class="drawer-head">
+      <h3>My Orders</h3>
+      <button class="x-btn" onclick="toggleOrders()">✕</button>
+    </div>
+    <div class="orders-body" id="orders-body">
+      <div class="loading">Loading orders…</div>
+    </div>
   </div>
 
-  <!-- Our script — loaded at the end so HTML is ready when JS runs -->
+  <!-- ════ TOAST ════ -->
+  <div class="toast" id="toast"></div>
+
   <script src="script.js"></script>
 </body>
 </html>

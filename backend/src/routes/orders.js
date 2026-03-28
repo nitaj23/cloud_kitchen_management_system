@@ -1,184 +1,169 @@
-// =============================================================
-//  src/routes/orders.js
-//
-//  POST /api/orders            — place a new order
-//  GET  /api/orders/active     — kitchen display feed
-//  GET  /api/orders/:id        — single order details
-//  PUT  /api/orders/:id/next   — advance order status
-//  PUT  /api/orders/:id/cancel — cancel an order
-// =============================================================
-
-const express  = require('express');
-const router   = express.Router();
-const oracledb = require('oracledb');
+const express = require('express');
+const router  = express.Router();
+const db      = require('../db');
 
 
-// ── POST /api/orders ──────────────────────────────────────────
-// Body: { user_id: 2, items: [ { item_id: 3, quantity: 2 } ] }
-//
-// Without auth, the frontend passes user_id in the request body.
-// When auth is added later, this comes from the JWT instead.
+// GET orders
+router.get('/', async (req, res, next) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const result = await db.execute(
+      `SELECT o.order_id, o.status, o.total_amount,
+              TO_CHAR(o.created_at, 'DD Mon YYYY HH24:MI') AS created_at
+       FROM orders o
+       WHERE o.user_id = :user_id
+       ORDER BY o.created_at DESC`,
+      { user_id: userId }
+    );
+
+    const orders = result.rows;
+
+    for (const order of orders) {
+      const items = await db.execute(
+        `SELECT m.name, oi.quantity, oi.unit_price,
+                (oi.quantity * oi.unit_price) AS line_total
+         FROM order_items oi
+         JOIN menu_items m ON oi.item_id = m.item_id
+         WHERE oi.order_id = :order_id`,
+        { order_id: order.ORDER_ID }
+      );
+      order.items = items.rows;
+    }
+
+    res.json(orders);
+  } catch (err) { next(err); }
+});
+
+
+// POST order
 router.post('/', async (req, res, next) => {
-    let conn;
-    try {
-        const { user_id, items } = req.body;
+  try {
+    const { userId, items } = req.body;
 
-        if (!items || items.length === 0) {
-            return res.status(400).json({ error: 'No items in order.' });
-        }
-        if (!user_id) {
-            return res.status(400).json({ error: 'user_id is required.' });
-        }
-
-        const itemIds    = items.map(i => i.item_id);
-        const quantities = items.map(i => i.quantity);
-
-        conn = await oracledb.getConnection();
-        const result = await conn.execute(
-            `BEGIN
-                pkg_orders.place_order(
-                    :user_id,
-                    SYS.ODCINUMBERLIST(${itemIds.join(',')}),
-                    SYS.ODCINUMBERLIST(${quantities.join(',')}),
-                    :order_id
-                );
-             END;`,
-            {
-                user_id:  Number(user_id),
-                order_id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
-            }
-        );
-
-        res.status(201).json({
-            success:  true,
-            order_id: result.outBinds.order_id,
-            message:  'Order placed successfully.'
-        });
-
-    } catch (err) {
-        if (err.message && err.message.includes('ORA-20020')) {
-            return res.status(400).json({ error: 'One or more items are not available.' });
-        }
-        next(err);
-    } finally {
-        if (conn) await conn.close();
+    if (!userId || !items || items.length === 0) {
+      return res.status(400).json({ error: 'userId and items required' });
     }
+
+    let totalAmount = 0;
+    const enriched = [];
+
+    for (const { itemId, quantity } of items) {
+      const r = await db.execute(
+        `SELECT price, is_available, name
+         FROM menu_items
+         WHERE item_id = :item_id`,
+        { item_id: itemId }
+      );
+
+      if (!r.rows.length) {
+        return res.status(400).json({ error: `Item ${itemId} not found` });
+      }
+
+      const item = r.rows[0];
+
+      if (item.IS_AVAILABLE !== 'Y') {
+        return res.status(400).json({ error: `${item.NAME} is not available` });
+      }
+
+      totalAmount += item.PRICE * quantity;
+      enriched.push({ itemId, quantity, price: item.PRICE });
+    }
+
+    // Insert order
+    await db.execute(
+      `INSERT INTO orders (user_id, status, total_amount)
+       VALUES (:user_id, 'pending', :total_amount)`,
+      {
+        user_id: userId,
+        total_amount: totalAmount
+      }
+    );
+
+    // Get latest order ID safely
+    const r = await db.execute(
+      `SELECT MAX(order_id) AS order_id
+       FROM orders
+       WHERE user_id = :user_id`,
+      { user_id: userId }
+    );
+
+    const orderId = r.rows[0].ORDER_ID;
+
+    // Insert items
+    for (const { itemId, quantity, price } of enriched) {
+      await db.execute(
+        `INSERT INTO order_items (order_id, item_id, quantity, unit_price)
+         VALUES (:order_id, :item_id, :quantity, :unit_price)`,
+        {
+          order_id: orderId,
+          item_id: itemId,
+          quantity: quantity,
+          unit_price: price
+        }
+      );
+    }
+
+    res.status(201).json({
+      orderId,
+      totalAmount,
+      status: 'pending'
+    });
+
+  } catch (err) {
+    console.error("ORDER ERROR:", err);
+    next(err);
+  }
 });
 
 
-// ── GET /api/orders/active ────────────────────────────────────
-router.get('/active', async (req, res, next) => {
-    let conn;
-    try {
-        conn = await oracledb.getConnection();
-        const result = await conn.execute(
-            `BEGIN pkg_orders.get_active_orders(:result); END;`,
-            { result: { dir: oracledb.BIND_OUT, type: oracledb.CURSOR } }
-        );
+// PATCH order status
+router.patch('/:id/status', async (req, res, next) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const { action } = req.body;
 
-        const cursor = result.outBinds.result;
-        const rows   = await cursor.getRows();
-        await cursor.close();
+    const current = await db.execute(
+      `SELECT status FROM orders WHERE order_id = :order_id`,
+      { order_id: orderId }
+    );
 
-        res.json({ success: true, data: rows });
-
-    } catch (err) {
-        next(err);
-    } finally {
-        if (conn) await conn.close();
+    if (!current.rows.length) {
+      return res.status(404).json({ error: 'Order not found' });
     }
-});
 
+    const status = current.rows[0].STATUS;
+    let newStatus;
 
-// ── GET /api/orders/:id ───────────────────────────────────────
-router.get('/:id', async (req, res, next) => {
-    let conn;
-    try {
-        conn = await oracledb.getConnection();
-
-        const orderResult = await conn.execute(
-            `SELECT o.order_id, u.name AS customer, o.status,
-                    o.total_amount, o.created_at
-             FROM   orders o JOIN users u ON o.user_id = u.user_id
-             WHERE  o.order_id = :id`,
-            { id: Number(req.params.id) },
-            { outFormat: oracledb.OUT_FORMAT_OBJECT }
-        );
-
-        if (orderResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Order not found.' });
-        }
-
-        const itemsResult = await conn.execute(
-            `SELECT m.name, oi.quantity, oi.unit_price,
-                    (oi.quantity * oi.unit_price) AS line_total
-             FROM   order_items oi
-             JOIN   menu_items m ON oi.item_id = m.item_id
-             WHERE  oi.order_id = :id`,
-            { id: Number(req.params.id) },
-            { outFormat: oracledb.OUT_FORMAT_OBJECT }
-        );
-
-        res.json({
-            success: true,
-            data: {
-                ...orderResult.rows[0],
-                items: itemsResult.rows
-            }
-        });
-
-    } catch (err) {
-        next(err);
-    } finally {
-        if (conn) await conn.close();
+    if (action === 'cancel') {
+      if (!['pending', 'preparing'].includes(status)) {
+        return res.status(400).json({ error: `Cannot cancel order in status: ${status}` });
+      }
+      newStatus = 'cancelled';
+    } else {
+      const nextMap = {
+        pending: 'preparing',
+        preparing: 'ready',
+        ready: 'delivered'
+      };
+      newStatus = nextMap[status];
+      if (!newStatus) {
+        return res.status(400).json({ error: `Cannot advance from: ${status}` });
+      }
     }
+
+    await db.execute(
+      `UPDATE orders SET status = :status WHERE order_id = :order_id`,
+      {
+        status: newStatus,
+        order_id: orderId
+      }
+    );
+
+    res.json({ orderId, status: newStatus });
+
+  } catch (err) { next(err); }
 });
-
-
-// ── PUT /api/orders/:id/next ──────────────────────────────────
-router.put('/:id/next', async (req, res, next) => {
-    let conn;
-    try {
-        conn = await oracledb.getConnection();
-        await conn.execute(
-            `BEGIN pkg_orders.advance_status(:order_id); END;`,
-            { order_id: Number(req.params.id) },
-            { autoCommit: true }
-        );
-        res.json({ success: true, message: 'Order status advanced.' });
-
-    } catch (err) {
-        if (err.message && err.message.includes('ORA-20021')) {
-            return res.status(400).json({ error: 'Cannot advance this order.' });
-        }
-        next(err);
-    } finally {
-        if (conn) await conn.close();
-    }
-});
-
-
-// ── PUT /api/orders/:id/cancel ────────────────────────────────
-router.put('/:id/cancel', async (req, res, next) => {
-    let conn;
-    try {
-        conn = await oracledb.getConnection();
-        await conn.execute(
-            `BEGIN pkg_orders.cancel_order(:order_id); END;`,
-            { order_id: Number(req.params.id) },
-            { autoCommit: true }
-        );
-        res.json({ success: true, message: 'Order cancelled. Inventory restored.' });
-
-    } catch (err) {
-        if (err.message && err.message.includes('ORA-20022')) {
-            return res.status(400).json({ error: 'Cannot cancel this order.' });
-        }
-        next(err);
-    } finally {
-        if (conn) await conn.close();
-    }
-});
-
 
 module.exports = router;

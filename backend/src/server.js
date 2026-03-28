@@ -1,58 +1,45 @@
-// =============================================================
-//  src/server.js
-// =============================================================
-
+// server.js — Cloud Kitchen Management System
 require('dotenv').config();
-
 const express = require('express');
 const cors    = require('cors');
-const { initPool, closePool } = require('./db');
+const path    = require('path');
+const db      = require('./db');
 
-const menuRoutes  = require('./routes/menu');
-const orderRoutes = require('./routes/orders');
+const menuRouter   = require('./routes/menu');
+const ordersRouter = require('./routes/orders');
+const usersRouter  = require('./routes/users');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Middleware ────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
 
-app.use((req, res, next) => {
-    console.log(`${req.method}  ${req.path}`);
-    next();
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../../frontend')));
+
+// API routes
+app.use('/api/menu',   menuRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/users',  usersRouter);
+
+// Fallback: serve index for any non-API route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/index.html'));
 });
 
-// ── Routes ────────────────────────────────────────────────────
-app.use('/api/menu',   menuRoutes);
-app.use('/api/orders', orderRoutes);
-
-// ── Health check ──────────────────────────────────────────────
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date() });
-});
-
-// ── Global error handler ──────────────────────────────────────
+// Global error handler
 app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err.message);
-    res.status(err.status || 500).json({
-        error: err.message || 'Internal server error'
-    });
+  console.error('[ERROR]', err.message || err);
+  res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-// ── Start ─────────────────────────────────────────────────────
-async function start () {
-    await initPool();
-
-    const server = app.listen(PORT, () => {
-        console.log(`CKMS backend running on http://localhost:${PORT}`);
-    });
-
-    process.on('SIGINT', async () => {
-        await closePool();
-        server.close();
-        process.exit(0);
-    });
-}
-
-start();
+// Start after DB is ready
+db.init().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Cloud Kitchen running on http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error('DB init failed:', err.message);
+  process.exit(1);
+});
