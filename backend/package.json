@@ -1,0 +1,19 @@
+{
+  "name": "ckms-backend",
+  "version": "1.0.0",
+  "description": "Cloud Kitchen Management System — Node.js + Oracle backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "oracledb": "^6.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
