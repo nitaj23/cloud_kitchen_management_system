@@ -1,110 +1,98 @@
-// ─────────────────────────────────────────────────────────────
-//  MENU DATA
-//
-//  Right now this is hardcoded here.
-//  In Stage 2 (Node.js backend), you'll replace this entire
-//  array with a single fetch call:
-//
-//    const res  = await fetch('/api/menu');
-//    const MENU = await res.json();
-//
-//  Your Node.js server will query MySQL and return the same
-//  structure — so the rest of this file stays exactly the same.
-// ─────────────────────────────────────────────────────────────
-const MENU = [
-  { id: 1, name: "Paneer Tikka",     desc: "Chargrilled cottage cheese, mint chutney",   price: 180, cat: "starters",     img: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=120&q=80" },
-  { id: 2, name: "Veg Spring Rolls", desc: "Crispy rolls, seasoned vegetables",          price: 140, cat: "starters",     img: "https://images.unsplash.com/photo-1606755456206-b25206cde27e?w=120&q=80" },
-  { id: 3, name: "Butter Chicken",   desc: "Tomato-butter gravy, tender chicken",        price: 280, cat: "mains",        img: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=120&q=80" },
-  { id: 4, name: "Dal Makhani",      desc: "Slow-cooked black lentils, cream",           price: 200, cat: "mains",        img: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=120&q=80" },
-  { id: 5, name: "Chicken Biryani",  desc: "Basmati rice, saffron, spiced chicken",      price: 320, cat: "rice-noodles", img: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=120&q=80" },
-  { id: 6, name: "Hakka Noodles",    desc: "Wok-tossed noodles, fresh vegetables",       price: 160, cat: "rice-noodles", img: "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=120&q=80" },
-  { id: 7, name: "Gulab Jamun",      desc: "Milk dumplings in rose-cardamom syrup",      price: 90,  cat: "desserts",     img: "https://www.vegrecipesofindia.com/wp-content/uploads/2021/10/gulab-jamun-recipe-500x500.jpg" },
-  { id: 8, name: "Mango Lassi",      desc: "Chilled yoghurt, Alphonso mangoes",          price: 80,  cat: "drinks",       img: "https://images.unsplash.com/photo-1546173159-315724a31696?w=120&q=80" },
-];
+// script.js — Cloud Kitchen (connected to Express + Oracle)
 
-// ─────────────────────────────────────────────────────────────
-//  STATE
-//
-//  Two variables that represent the current app state:
-//    cart      — what the user has added  { itemId: { item, qty } }
-//    activeCat — which filter is selected  e.g. "mains"
-//
-//  Think of these like global variables in a Python script.
-// ─────────────────────────────────────────────────────────────
+const API = '';   // same-origin (Express serves this file)
+
+// ─── Auth guard ───────────────────────────────────────────────
+const stored = sessionStorage.getItem('ckms_user');
+if (!stored) { window.location.replace('login.html'); }
+const CURRENT_USER = JSON.parse(stored);
+
+// ─── State ───────────────────────────────────────────────────
+let MENU      = [];
 let cart      = {};
-let activeCat = "all";
+let activeCat = 'all';
 
+// ─── Init ─────────────────────────────────────────────────────
+function initHeader() {
+  const name   = CURRENT_USER.name;
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent   = name;
+}
 
-// ─────────────────────────────────────────────────────────────
-//  renderMenu(cat)
-//
-//  Reads the MENU array, filters by category, and builds the
-//  HTML rows that appear on the page.
-//
-//  Python equivalent:
-//    def render_menu(cat):
-//        items = MENU if cat == "all" else [m for m in MENU if m["cat"] == cat]
-//        for item in items:
-//            print(build_row_html(item))
-// ─────────────────────────────────────────────────────────────
-function renderMenu(cat) {
-  const items = cat === "all" ? MENU : MENU.filter(m => m.cat === cat);
+function logout() {
+  sessionStorage.removeItem('ckms_user');
+  window.location.replace('login.html');
+}
 
-  document.getElementById("meta").textContent = `${items.length} item${items.length !== 1 ? "s" : ""}`;
+// ─── Menu ─────────────────────────────────────────────────────
+async function loadMenu(category = 'all') {
+  document.getElementById('menu-list').innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const url = category === 'all'
+      ? `${API}/api/menu`
+      : `${API}/api/menu?category=${encodeURIComponent(category)}`;
+    const res  = await fetch(url);
+    MENU = await res.json();
+    renderMenu();
+  } catch (e) {
+    document.getElementById('menu-list').innerHTML =
+      '<div class="loading error">Failed to load menu. Is the server running?</div>';
+  }
+}
 
-  document.getElementById("menu-list").innerHTML = items.map(m => {
-    const qty = cart[m.id] ? cart[m.id].qty : 0;
+function renderMenu() {
+  const items = MENU;
+  document.getElementById('meta').textContent =
+    `${items.length} item${items.length !== 1 ? 's' : ''}`;
+
+  document.getElementById('menu-list').innerHTML = items.map(m => {
+    const id  = m.ITEM_ID;
+    const qty = cart[id] ? cart[id].qty : 0;
 
     const control = qty === 0
-      ? `<button class="add-btn" id="btn-${m.id}" onclick="addToCart(${m.id})">+ Add</button>`
-      : `<div class="qty-stepper" id="btn-${m.id}">
-           <button class="qty-btn" onclick="decreaseQty(${m.id})">−</button>
+      ? `<button class="add-btn" id="btn-${id}" onclick="addToCart(${id})">+ Add</button>`
+      : `<div class="qty-stepper" id="btn-${id}">
+           <button class="qty-btn" onclick="decreaseQty(${id})">−</button>
            <span class="qty-num">${qty}</span>
-           <button class="qty-btn" onclick="increaseQty(${m.id})">+</button>
+           <button class="qty-btn" onclick="increaseQty(${id})">+</button>
          </div>`;
+
+    const img = m.IMAGE_URL
+      ? m.IMAGE_URL
+      : `https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=120&q=80`;
 
     return `
       <div class="menu-row">
-        <img class="row-img" src="${m.img}" alt="${m.name}"/>
+        <img class="row-img" src="${img}" alt="${m.NAME}"
+             onerror="this.src='https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=120&q=80'"/>
         <div class="row-info">
-          <div class="row-name">${m.name}</div>
-          <div class="row-desc">${m.desc}</div>
+          <div class="row-name">${m.NAME}</div>
+          <div class="row-desc">${m.DESCRIPTION || ''}</div>
+          <span class="cat-badge">${m.CATEGORY}</span>
         </div>
         <div class="row-right">
-          <span class="row-price">₹${m.price}</span>
+          <span class="row-price">₹${m.PRICE}</span>
           ${control}
         </div>
       </div>
     `;
-  }).join("");
+  }).join('');
 }
 
-
-// ─────────────────────────────────────────────────────────────
-//  filter(cat, pillElement)
-//
-//  Called when a category pill is clicked.
-//  Updates which pill is highlighted, then re-renders the list.
-// ─────────────────────────────────────────────────────────────
 function filter(cat, el) {
   activeCat = cat;
-  document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
-  el.classList.add("active");
-  renderMenu(cat);
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  loadMenu(cat);
 }
 
-
-// ─────────────────────────────────────────────────────────────
-//  addToCart(id)
-//
-//  Adds an item to the cart, or increments its quantity if
-//  it's already there. Then updates the button and the UI.
-// ─────────────────────────────────────────────────────────────
+// ─── Cart ─────────────────────────────────────────────────────
 function addToCart(id) {
-  const item = MENU.find(m => m.id === id);
+  const item = MENU.find(m => m.ITEM_ID === id);
   if (!item) return;
   cart[id] = { item, qty: 1 };
-  renderMenu(activeCat);
+  renderMenu();
   updateCartUI();
 }
 
@@ -112,7 +100,7 @@ function increaseQty(id) {
   if (!cart[id]) return;
   cart[id].qty += 1;
   const s = document.getElementById(`btn-${id}`);
-  if (s) s.querySelector(".qty-num").textContent = cart[id].qty;
+  if (s) s.querySelector('.qty-num').textContent = cart[id].qty;
   updateCartUI();
 }
 
@@ -121,111 +109,163 @@ function decreaseQty(id) {
   cart[id].qty -= 1;
   if (cart[id].qty === 0) {
     delete cart[id];
-    renderMenu(activeCat);
+    renderMenu();
   } else {
     const s = document.getElementById(`btn-${id}`);
-    if (s) s.querySelector(".qty-num").textContent = cart[id].qty;
+    if (s) s.querySelector('.qty-num').textContent = cart[id].qty;
   }
   updateCartUI();
 }
 
-
-// ─────────────────────────────────────────────────────────────
-//  removeFromCart(id)
-//
-//  Removes an item completely from the cart (regardless of qty).
-// ─────────────────────────────────────────────────────────────
 function removeFromCart(id) {
   delete cart[id];
-  renderMenu(activeCat);   // re-render so the button resets to "+ Add"
+  renderMenu();
   updateCartUI();
 }
 
-
-// ─────────────────────────────────────────────────────────────
-//  updateCartUI()
-//
-//  Redraws everything cart-related:
-//    - the badge count on the header button
-//    - the items list inside the drawer
-//    - the total price
-//    - whether the "Place order" button is enabled
-// ─────────────────────────────────────────────────────────────
 function updateCartUI() {
   const entries  = Object.values(cart);
-  const totalQty = entries.reduce((sum, c) => sum + c.qty, 0);
-  const totalAmt = entries.reduce((sum, c) => sum + c.item.price * c.qty, 0);
+  const totalQty = entries.reduce((s, c) => s + c.qty, 0);
+  const totalAmt = entries.reduce((s, c) => s + c.item.PRICE * c.qty, 0);
 
-  // Header badge
-  document.getElementById("cart-count").textContent = totalQty;
+  document.getElementById('cart-count').textContent = totalQty;
+  document.getElementById('total').textContent = `₹${totalAmt}`;
+  document.getElementById('order-btn').disabled = entries.length === 0;
 
-  // Total price
-  document.getElementById("total").textContent = `₹${totalAmt}`;
-
-  // Enable / disable the order button
-  document.getElementById("order-btn").disabled = entries.length === 0;
-
-  // Drawer item list
-  document.getElementById("drawer-items").innerHTML = entries.length === 0
+  document.getElementById('drawer-items').innerHTML = entries.length === 0
     ? `<p class="empty-msg">Nothing here yet.<br>Add something from the menu!</p>`
     : entries.map(({ item, qty }) => `
         <div class="c-item">
           <div>
-            <div class="c-item-name">${item.emoji} ${item.name}${qty > 1 ? ` ×${qty}` : ""}</div>
-            <div class="c-item-price">₹${item.price * qty}</div>
+            <div class="c-item-name">${item.NAME}${qty > 1 ? ` ×${qty}` : ''}</div>
+            <div class="c-item-price">₹${item.PRICE * qty}</div>
           </div>
-          <button class="rm-btn" onclick="removeFromCart(${item.id})" title="Remove">✕</button>
+          <button class="rm-btn" onclick="removeFromCart(${item.ITEM_ID})" title="Remove">✕</button>
         </div>
-      `).join("");
+      `).join('');
 }
 
+// ─── Place Order ──────────────────────────────────────────────
+async function placeOrder() {
+  const entries = Object.values(cart);
+  if (!entries.length) return;
 
-// ─────────────────────────────────────────────────────────────
-//  toggleCart()
-//
-//  Opens or closes the cart drawer.
-//  The "open" class is what triggers the CSS slide animation.
-// ─────────────────────────────────────────────────────────────
+  const btn = document.getElementById('order-btn');
+  btn.disabled = true;
+  btn.textContent = 'Placing…';
+
+  try {
+    const payload = {
+      userId: CURRENT_USER.id,
+      items : entries.map(({ item, qty }) => ({
+        itemId  : item.ITEM_ID,
+        quantity: qty,
+      })),
+    };
+
+    const res  = await fetch(`${API}/api/orders`, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Order failed');
+
+    cart = {};
+    updateCartUI();
+    closeAll();
+    showToast(`Order #${data.orderId} placed! Total ₹${data.total}`);
+  } catch (e) {
+    showToast('Error: ' + e.message, true);
+    btn.disabled = false;
+  }
+  btn.textContent = 'Place order';
+}
+
+// ─── My Orders ────────────────────────────────────────────────
+async function toggleOrders() {
+  const drawer = document.getElementById('orders-drawer');
+  const isOpen = drawer.classList.contains('open');
+
+  closeAll();
+  if (!isOpen) {
+    drawer.classList.add('open');
+    document.getElementById('overlay').classList.add('open');
+    await loadOrders();
+  }
+}
+
+async function loadOrders() {
+  const body = document.getElementById('orders-body');
+  body.innerHTML = '<div class="loading">Loading orders…</div>';
+  try {
+    const res    = await fetch(`${API}/api/orders?userId=${CURRENT_USER.id}`);
+    const orders = await res.json();
+
+    if (!orders.length) {
+      body.innerHTML = '<p class="empty-msg">No orders yet.</p>';
+      return;
+    }
+
+    const statusColor = {
+      pending  : '#F59E0B',
+      preparing: '#3B82F6',
+      ready    : '#8B5CF6',
+      delivered: '#10B981',
+      cancelled: '#6B7280',
+    };
+
+    body.innerHTML = orders.map(o => `
+      <div class="order-card">
+        <div class="order-card-head">
+          <span class="order-id">#${o.ORDER_ID}</span>
+          <span class="order-status" style="color:${statusColor[o.STATUS] || '#6B7280'}">
+            ${o.STATUS}
+          </span>
+        </div>
+        <div class="order-items-list">
+          ${(o.items || []).map(i =>
+            `<span>${i.NAME} ×${i.QUANTITY}</span>`
+          ).join(' · ')}
+        </div>
+        <div class="order-card-foot">
+          <span class="order-date">${o.CREATED_AT}</span>
+          <span class="order-total">₹${o.TOTAL_AMOUNT}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    body.innerHTML = '<p class="empty-msg">Could not load orders.</p>';
+  }
+}
+
+// ─── Drawer helpers ───────────────────────────────────────────
 function toggleCart() {
-  document.getElementById("drawer").classList.toggle("open");
-  document.getElementById("overlay").classList.toggle("open");
+  const drawer  = document.getElementById('drawer');
+  const isOpen  = drawer.classList.contains('open');
+  closeAll();
+  if (!isOpen) {
+    drawer.classList.add('open');
+    document.getElementById('overlay').classList.add('open');
+  }
 }
 
-
-// ─────────────────────────────────────────────────────────────
-//  placeOrder()
-//
-//  Currently: clears the cart and shows a success toast.
-//
-//  ── STAGE 2 UPGRADE ──────────────────────────────────────────
-//  When your Node.js backend is ready, replace the body of this
-//  function with:
-//
-//    const res = await fetch('/api/orders', {
-//      method:  'POST',
-//      headers: { 'Content-Type': 'application/json' },
-//      body:    JSON.stringify({ items: cart })
-//    });
-//    const data = await res.json();
-//    console.log('Order ID:', data.orderId);
-//
-//  That one call sends the cart to Express → MySQL.
-//  Everything else below (clearing cart, showing toast) stays.
-// ─────────────────────────────────────────────────────────────
-function placeOrder() {
-  console.log("Order placed:", cart);   // visible in browser DevTools → Console
-
-  cart = {};
-  updateCartUI();
-  toggleCart();
-
-  const toast = document.getElementById("toast");
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 3500);
+function closeAll() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('orders-drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
 }
 
+// ─── Toast ────────────────────────────────────────────────────
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? '#DC2626' : '#2C1810';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3800);
+}
 
-// ─────────────────────────────────────────────────────────────
-//  INIT — runs once when the page loads
-// ─────────────────────────────────────────────────────────────
-renderMenu("all");
+// ─── Boot ─────────────────────────────────────────────────────
+initHeader();
+loadMenu();

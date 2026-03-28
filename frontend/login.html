@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CloudKitchen — Sign In</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --saffron:   #E8680A;
+      --saffron-lt:#FFF4EC;
+      --cardamom:  #2C1810;
+      --cream:     #FDF8F3;
+      --muted:     #9B7E71;
+      --border:    #EDE0D4;
+      --card-bg:   #FFFFFF;
+      --shadow:    0 8px 40px rgba(44,24,16,.10);
+    }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      padding: 24px;
+    }
+
+    /* Subtle spice-dot pattern in background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(232,104,10,.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(232,104,10,.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 48px 44px 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    /* Accent stripe at top */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 32px; right: 32px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--saffron), #F5A623);
+      border-radius: 0 0 6px 6px;
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--cardamom);
+      letter-spacing: -.5px;
+      margin-bottom: 4px;
+    }
+    .logo span { color: var(--saffron); }
+
+    .tagline {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-bottom: 36px;
+      font-weight: 300;
+      letter-spacing: .2px;
+    }
+
+    h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      color: var(--cardamom);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .sub {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    /* Demo user pills */
+    .users-grid {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: var(--cream);
+      cursor: pointer;
+      transition: border-color .18s, background .18s, transform .15s;
+      text-align: left;
+    }
+    .user-pill:hover {
+      border-color: var(--saffron);
+      background: var(--saffron-lt);
+      transform: translateY(-1px);
+    }
+    .user-pill.selected {
+      border-color: var(--saffron);
+      background: var(--saffron-lt);
+      box-shadow: 0 0 0 3px rgba(232,104,10,.12);
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 600;
+      flex-shrink: 0;
+      font-family: 'Playfair Display', serif;
+    }
+
+    .pill-info { flex: 1; min-width: 0; }
+    .pill-name {
+      font-size: .9rem;
+      font-weight: 500;
+      color: var(--cardamom);
+    }
+    .pill-meta {
+      font-size: .76rem;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      margin-top: 1px;
+    }
+    .role-tag {
+      font-size: .68rem;
+      font-weight: 500;
+      padding: 1px 7px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .role-tag.admin    { background:#FEF3C7; color:#92400E; }
+    .role-tag.customer { background:#ECFDF5; color:#065F46; }
+
+    .check-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--saffron);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity .18s;
+      flex-shrink: 0;
+    }
+    .user-pill.selected .check-icon { opacity: 1; }
+    .check-icon svg { width: 11px; height: 11px; }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--saffron);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .18s, transform .15s, opacity .18s;
+      letter-spacing: .2px;
+    }
+    .login-btn:hover:not(:disabled) {
+      background: #C7560A;
+      transform: translateY(-1px);
+    }
+    .login-btn:disabled {
+      opacity: .45;
+      cursor: default;
+    }
+
+    .error {
+      margin-top: 12px;
+      font-size: .82rem;
+      color: #DC2626;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .demo-note {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      font-size: .76rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+    .demo-note strong { color: var(--cardamom); }
+
+    /* Avatar colours cycling */
+    .av0 { background:#FEE2D5; color:#9A3412; }
+    .av1 { background:#D1FAE5; color:#065F46; }
+    .av2 { background:#EDE9FE; color:#4C1D95; }
+    .av3 { background:#FCE7F3; color:#9D174D; }
+    .av4 { background:#FEF3C7; color:#92400E; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Cloud<span>Kitchen</span></div>
+    <p class="tagline">Fresh from the kitchen — straight to you</p>
+
+    <h2>Who's ordering?</h2>
+    <p class="sub">Pick a demo profile to continue — no password needed.</p>
+
+    <div class="users-grid" id="users-grid">
+      <!-- Populated by JS -->
+    </div>
+
+    <button class="login-btn" id="login-btn" disabled onclick="doLogin()">
+      Continue →
+    </button>
+    <div class="error" id="error"></div>
+
+    <div class="demo-note">
+      <strong>Demo mode</strong>
+    </div>
+  </div>
+
+  <script>
+    const API = '';   // same origin (Express serves frontend)
+    let selectedUser = null;
+
+    const avatarColors = ['av0','av1','av2','av3','av4'];
+
+    // Initials from name
+    function initials(name) {
+      return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    }
+
+    async function loadUsers() {
+      try {
+        const res   = await fetch(`${API}/api/users/demo`);
+        const users = await res.json();
+
+        const grid = document.getElementById('users-grid');
+        grid.innerHTML = users.map((u, i) => `
+          <div class="user-pill" id="pill-${u.USER_ID}" onclick="selectUser(${u.USER_ID}, '${u.NAME}', '${u.ROLE}')">
+            <div class="avatar ${avatarColors[i % 5]}">${initials(u.NAME)}</div>
+            <div class="pill-info">
+              <div class="pill-name">${u.NAME}</div>
+              <div class="pill-meta">
+                <span>${u.EMAIL}</span>
+              </div>
+            </div>
+            <span class="role-tag ${u.ROLE}">${u.ROLE}</span>
+            <div class="check-icon">
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('error').textContent =
+          'Cannot connect to server. Make sure Node.js is running on port 3000.';
+      }
+    }
+
+    function selectUser(id, name, role) {
+      // Deselect previous
+      document.querySelectorAll('.user-pill').forEach(p => p.classList.remove('selected'));
+      document.getElementById(`pill-${id}`).classList.add('selected');
+      selectedUser = { id, name, role };
+      document.getElementById('login-btn').disabled = false;
+      document.getElementById('error').textContent = '';
+    }
+
+    async function doLogin() {
+      if (!selectedUser) return;
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+
+      try {
+        const res  = await fetch(`${API}/api/users/login`, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ userId: selectedUser.id }),
+        });
+        const user = await res.json();
+
+        // Persist to sessionStorage — picked up by index.html
+        sessionStorage.setItem('ckms_user', JSON.stringify({
+          id  : user.USER_ID,
+          name: user.NAME,
+          role: user.ROLE,
+        }));
+
+        window.location.href = 'index.html';
+      } catch (e) {
+        document.getElementById('error').textContent = 'Login failed — server error.';
+        btn.disabled = false;
+        btn.textContent = 'Continue →';
+      }
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
