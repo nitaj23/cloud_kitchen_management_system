@@ -175,7 +175,7 @@ async function placeOrder() {
     cart = {};
     updateCartUI();
     closeAll();
-    showToast(`Order #${data.orderId} placed! Total ₹${data.total}`);
+    showToast(`Order #${data.orderId} placed! Total ₹${data.totalAmount}`);
   } catch (e) {
     showToast('Error: ' + e.message, true);
     btn.disabled = false;
