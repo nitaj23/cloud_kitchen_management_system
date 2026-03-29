@@ -7,19 +7,27 @@ const db      = require('../db');
 router.get('/', async (req, res, next) => {
   try {
     const { userId } = req.query;
-    if (!userId) return res.status(400).json({ error: 'userId required' });
+    let query = `
+      SELECT o.order_id, o.status, o.total_amount,
+             TO_CHAR(o.created_at, 'DD Mon YYYY HH24:MI') AS created_at
+      FROM orders o
+    `;
 
-    const result = await db.execute(
-      `SELECT o.order_id, o.status, o.total_amount,
-              TO_CHAR(o.created_at, 'DD Mon YYYY HH24:MI') AS created_at
-       FROM orders o
-       WHERE o.user_id = :user_id
-       ORDER BY o.created_at DESC`,
-      { user_id: userId }
-    );
+    let binds = {};
+
+    // Filter only if userId is provided
+    if (userId) {
+      query += ` WHERE o.user_id = :user_id`;
+      binds.user_id = userId;
+    }
+
+    query += ` ORDER BY o.created_at DESC`;
+
+    const result = await db.execute(query, binds);
 
     const orders = result.rows;
 
+    // Fetch items for each order (unchanged)
     for (const order of orders) {
       const items = await db.execute(
         `SELECT m.name, oi.quantity, oi.unit_price,
@@ -33,6 +41,7 @@ router.get('/', async (req, res, next) => {
     }
 
     res.json(orders);
+
   } catch (err) { next(err); }
 });
 

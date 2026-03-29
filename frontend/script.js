@@ -6,6 +6,7 @@ const API = '';   // same-origin (Express serves this file)
 const stored = sessionStorage.getItem('ckms_user');
 if (!stored) { window.location.replace('login.html'); }
 const CURRENT_USER = JSON.parse(stored);
+const isAdmin = CURRENT_USER.id === 1;
 
 // ─── State ───────────────────────────────────────────────────
 let MENU      = [];
@@ -183,6 +184,31 @@ async function placeOrder() {
   btn.textContent = 'Place order';
 }
 
+async function updateOrder(orderId, action) {
+  try {
+    const res = await fetch(`/api/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Update failed', true);
+      return;
+    }
+
+    showToast(`Order #${orderId}: ${data.status}`);
+
+    // Refresh orders after update
+    loadOrders();
+
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
 // ─── My Orders ────────────────────────────────────────────────
 async function toggleOrders() {
   const drawer = document.getElementById('orders-drawer');
@@ -199,8 +225,14 @@ async function toggleOrders() {
 async function loadOrders() {
   const body = document.getElementById('orders-body');
   body.innerHTML = '<div class="loading">Loading orders…</div>';
+
   try {
-    const res    = await fetch(`${API}/api/orders?userId=${CURRENT_USER.id}`);
+    // Admin sees all orders, user sees only their own
+    const url = isAdmin
+      ? `${API}/api/orders`
+      : `${API}/api/orders?userId=${CURRENT_USER.id}`;
+
+    const res    = await fetch(url);
     const orders = await res.json();
 
     if (!orders.length) {
@@ -216,25 +248,75 @@ async function loadOrders() {
       cancelled: '#6B7280',
     };
 
-    body.innerHTML = orders.map(o => `
-      <div class="order-card">
-        <div class="order-card-head">
-          <span class="order-id">#${o.ORDER_ID}</span>
-          <span class="order-status" style="color:${statusColor[o.STATUS] || '#6B7280'}">
-            ${o.STATUS}
-          </span>
+    body.innerHTML = orders.map(o => {
+
+      const nextAction = {
+        pending: 'Start Preparing',
+        preparing: 'Mark Ready',
+        ready: 'Mark Delivered'
+      };
+
+      let actionBtn = '';
+      let cancelBtn = '';
+
+      // Admin-only controls
+      if (isAdmin) {
+        if (nextAction[o.STATUS]) {
+          actionBtn = `
+            <button class="order-action-btn"
+              onclick="updateOrder(${o.ORDER_ID}, 'advance')">
+              ⚡ ${nextAction[o.STATUS]}
+            </button>
+          `;
+        }
+
+        if (o.STATUS === 'pending' || o.STATUS === 'preparing') {
+          cancelBtn = `
+            <button class="order-cancel-btn"
+              onclick="updateOrder(${o.ORDER_ID}, 'cancel')">
+              ✖ Cancel
+            </button>
+          `;
+        }
+      }
+
+      return `
+        <div class="order-card">
+          <div class="order-card-head">
+            <span class="order-id">#${o.ORDER_ID}</span>
+            <span class="order-status"
+              style="color:${statusColor[o.STATUS] || '#6B7280'}">
+              ${o.STATUS}
+            </span>
+          </div>
+
+          ${isAdmin && o.USER_NAME ? `
+            <div style="font-size:0.75rem; color:#888; margin-bottom:6px;">
+              by ${o.USER_NAME}
+            </div>
+          ` : ''}
+
+          <div class="order-items-list">
+            ${(o.items || []).map(i =>
+              `<span>${i.NAME} ×${i.QUANTITY}</span>`
+            ).join(' · ')}
+          </div>
+
+          <div class="order-card-foot">
+            <span class="order-date">${o.CREATED_AT}</span>
+            <span class="order-total">₹${o.TOTAL_AMOUNT}</span>
+          </div>
+
+          ${isAdmin ? `
+            <div class="order-actions">
+              ${actionBtn}
+              ${cancelBtn}
+            </div>
+          ` : ''}
         </div>
-        <div class="order-items-list">
-          ${(o.items || []).map(i =>
-            `<span>${i.NAME} ×${i.QUANTITY}</span>`
-          ).join(' · ')}
-        </div>
-        <div class="order-card-foot">
-          <span class="order-date">${o.CREATED_AT}</span>
-          <span class="order-total">₹${o.TOTAL_AMOUNT}</span>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+
   } catch (e) {
     body.innerHTML = '<p class="empty-msg">Could not load orders.</p>';
   }
@@ -269,3 +351,12 @@ function showToast(msg, isError = false) {
 // ─── Boot ─────────────────────────────────────────────────────
 initHeader();
 loadMenu();
+
+if (!isAdmin) {
+  setInterval(() => {
+    const drawer = document.getElementById('orders-drawer');
+    if (drawer.classList.contains('open')) {
+      loadOrders();
+    }
+  }, 5000);
+}
